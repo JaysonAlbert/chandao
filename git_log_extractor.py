@@ -2,15 +2,11 @@
 import os
 import subprocess
 import openai
-from datetime import datetime
 from collections import defaultdict
 import json
 import re
+from dotenv import load_dotenv
 
-# 配置 OpenAI API
-
-openai.api_key = "123123123"
-openai.api_base = "http://chat.openai.com/v1"  # 替换为你的自定义 API 地址
 
 def get_git_logs(repo_path, author, since, until):
     """提取指定时间范围内的日志记录"""
@@ -51,7 +47,7 @@ def estimate_tasks_with_ai(date, messages):
              "\n请根据日志内容总结开发任务，当天有多个任务时，可总结任务，以减少任务总数量，并估算每个任务所需工时（小时），保证任务总工时为8小时。以JSON格式返回，示例如下：" \
              '\n[{"task": "任务描述", "hours": 4}, {"task": "任务描述", "hours": 4}]'
     response = openai.ChatCompletion.create(
-        model="gpt4",
+        model=model,
         messages=[{"role": "user", "content": prompt}]
     )
     return extract_json_from_ai_response(response['choices'][0]['message']['content'])
@@ -64,7 +60,7 @@ def extract_json_from_ai_response(ai_response):
         # 将提取的JSON字符串解析为Python对象
         return json.loads(json_str)
     except Exception as e:
-        print(f"提取JSON失败: {e}")
+        print(f"提取JSON失败: {e}, {json_str}")
         return None
 
 def analyze_work(repo_paths, author, since, until):
@@ -86,15 +82,21 @@ def save_report(report, output_file):
     with open(output_file, "w") as f:
         json.dump(report, f, ensure_ascii=False, indent=4) 
 
-# 示例运行
-repo_paths = [
-    "project1", 
-    "project2"
-             ]  # Git 仓库路径列表
-author = "au"  # 开发者邮箱或名字
-output_file = "work_summary.json"
-since = "2024-09-15"  # 开始时间
-until = "2024-11-19"  # 结束时间
+
+load_dotenv()
+
+# 从环境变量中获取配置
+repo_paths = os.getenv("REPO_PATHS").split(",")  # 转换为列表
+author = os.getenv("AUTHOR")
+output_file = os.getenv("OUTPUT_FILE")
+since = os.getenv("SINCE")
+until = os.getenv("UNTIL")
+api_key = os.getenv("API_KEY")
+api_base = os.getenv("API_BASE")
+model = os.getenv("MODEL")
+openai.api_key = api_key
+openai.api_base = api_base  # 替换为你的自定义 API 地址
+
 
 report = analyze_work(repo_paths, author, since, until)
 save_report(report, output_file)

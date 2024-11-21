@@ -1,8 +1,12 @@
-import re
-from playwright.sync_api import Playwright, sync_playwright, expect
+from playwright.sync_api import sync_playwright
 import time
 import json
 import pandas as pd
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 
 def login(page, url, username, password):
     page.goto(url)
@@ -59,8 +63,7 @@ def add_log(page, date, tasks, addIfExist=False):
         time.sleep(1)
 
 
-def submit_git_log():
-    data_path = 'work_summary.json'
+def submit_git_log(data_path):
     with open(data_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
         
@@ -84,10 +87,6 @@ def submit_git_log():
         # ---------------------
         context.close()
         browser.close()
-
-base_url = 'http://chandao.abc.com'
-username = 'abc'
-password = 'abc'
 
 
 def edit_git_log():
@@ -125,4 +124,11 @@ def edit_git_log():
                 
                 
                 
-edit_git_log()
+# edit_git_log()
+
+output_file = os.getenv("OUTPUT_FILE")
+base_url = os.getenv("CHANDAO_URL")
+username = os.getenv("USERNAME")
+password = os.getenv("PASSWORD")
+
+submit_git_log(output_file)
