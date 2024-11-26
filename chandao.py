@@ -71,8 +71,8 @@ def edit_git_log():
         page = context.new_page()
         page.goto("about:blank")
         login(page,base_url,username,password )
-        # df = pd.read_excel('分组日志详情页.xlsx')
-        for date in ['2024-05-29','2024-05-30','2024-05-31']:
+        df = pd.read_excel('分组日志详情页.xlsx')
+        for date in df['日期'].tolist():
             print(f"日期: {date}")
 
             page.locator("#date").fill(date)
