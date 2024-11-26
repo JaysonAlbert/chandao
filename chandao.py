@@ -4,6 +4,7 @@ import json
 import pandas as pd
 from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv()
 
@@ -17,8 +18,9 @@ def login(page, url, username, password):
     page.locator("input[name=\"password\"]").fill(password)
     page.get_by_role("button", name="登录").click()
     page.get_by_role("link", name="日程", exact=True).hover()
-    page.get_by_role("link", name="日志").click()
+    page.get_by_role("link", name="日志", exact=True).click()
     page.get_by_role("link", name="所有日志").click()
+
 
 def add_log(page, date, tasks, addIfExist=False):
     print(f"日期: {date}")
@@ -62,33 +64,6 @@ def add_log(page, date, tasks, addIfExist=False):
         
         time.sleep(1)
 
-
-def submit_git_log(data_path):
-    with open(data_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-        
-
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=False)
-        context = browser.new_context()
-        page = context.new_page()
-        page.goto("about:blank")
-        login(page,base_url,username,password )
-        
-        
-        # 循环遍历字典
-        for date, tasks in data.items():
-            if not tasks:
-                continue
-            
-            add_log(page, date, tasks)
-                
-
-        # ---------------------
-        context.close()
-        browser.close()
-
-
 def edit_git_log():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=False)
@@ -96,8 +71,8 @@ def edit_git_log():
         page = context.new_page()
         page.goto("about:blank")
         login(page,base_url,username,password )
-        df = pd.read_excel('分组日志详情页.xlsx')
-        for date in df['日期'].tolist():
+        # df = pd.read_excel('分组日志详情页.xlsx')
+        for date in ['2024-05-29','2024-05-30','2024-05-31']:
             print(f"日期: {date}")
 
             page.locator("#date").fill(date)
@@ -121,6 +96,70 @@ def edit_git_log():
                 task = {'task': work,'hours': '4'}
                 add_log(page, date, [task], True)
                 
+
+
+def submit_tasks(daily_tasks):
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+        page.goto("about:blank")
+        login(page,base_url,username,password )
+        
+        
+        # 循环遍历字典
+        for date, tasks in daily_tasks.items():
+            if not tasks:
+                continue
+            
+            add_log(page, date, tasks)
+                
+
+        # ---------------------
+        context.close()
+        browser.close()
+        
+
+def submit_git_log(data_path):
+    with open(data_path, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+        
+    submit_tasks(data)
+
+
+def submit_excel_log(data_path):
+    
+    def split_integer(total, n):
+        # 计算基础分配值和多余部分
+        base = total // n
+        remainder = total % n
+        
+        # 构造结果
+        result = [base] * n
+        for i in range(remainder):
+            result[i] += 1
+        
+        return result
+    
+    df = pd.read_excel(data_path, header = None)
+
+    result = {}
+
+    for _, row in df[df[1].notna()].iterrows():
+        date = row[0]
+        titles = re.sub(r'^[；;]+|[；;]+$', '', row[1]).strip().split('；' if '；' in row[1] else ';')
+        if len(titles) == 1:
+            titles = [titles[0], titles[0]]
+        hours = split_integer(8, len(titles))
+        result[date] = []
+        for idx, title in enumerate(titles):
+            if title.strip():  # 排除空值
+                result[date].append({
+                    'task': title,
+                    "hours": hours[idx]
+                    })
+                    
+    submit_tasks(result)
                 
                 
                 
@@ -131,4 +170,4 @@ base_url = os.getenv("CHANDAO_URL")
 username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
 
-submit_git_log(output_file)
+submit_excel_log('./禅道日志.xlsx')
