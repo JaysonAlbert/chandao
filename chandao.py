@@ -16,6 +16,7 @@ def login(page, url, username, password):
     page.locator("#account").fill(username)
     page.locator("#account").press("Tab")
     page.locator("input[name=\"password\"]").fill(password)
+    time.sleep(1)
     page.get_by_role("button", name="登录").click()
     page.get_by_role("link", name="日程", exact=True).hover()
     page.get_by_role("link", name="日志", exact=True).click()
@@ -40,6 +41,7 @@ def add_log(page, date, tasks, addIfExist=False):
         page.get_by_role("link", name=" 新增日志").click()
         
         time.sleep(1.5)
+        page.frame_locator("iframe[name=\"iframe-triggerModal\"]").get_by_role("button",name = "清除").click()
         
         for idx, task in enumerate(tasks):
             print(f"任务: {task['task']}, 工时: {task['hours']}")
@@ -71,31 +73,37 @@ def edit_git_log():
         page = context.new_page()
         page.goto("about:blank")
         login(page,base_url,username,password )
-        df = pd.read_excel('分组日志详情页.xlsx')
+        df = pd.read_excel('分组日志详情页-TA资金组-工作日工时少于8小时名单.xlsx')
+        df = df[df['姓名'] == '王杰']
         for date in df['日期'].tolist():
-            print(f"日期: {date}")
+            try:
+                print(f"日期: {date}")
 
-            page.locator("#date").fill(date)
-            page.locator("#date").press("Enter")
-            page.locator("#date").press("Enter")
-            time.sleep(1)
-            
-            table = page.locator("form.table-effort")
-            
-            # 检查表格下是否有数据
-            rows = table.locator('tbody tr')  # 获取所有行
-            if rows.count() == 1:  # 判断表格中是否存在行
-                print(f"开始修改禅道日志")
-                page.get_by_title("更新日志").click()
-                work = page.frame_locator("iframe[name=\"iframe-triggerModal\"]").locator("#work").input_value()
-                page.frame_locator("iframe[name=\"iframe-triggerModal\"]").locator("#consumed").fill("4")
-                page.frame_locator("iframe[name=\"iframe-triggerModal\"]").get_by_role("button", name="保存").click()
+                page.locator("#date").fill(date)
+                page.locator("#date").press("Enter")
+                page.locator("#date").press("Enter")
+                time.sleep(1)
                 
-                time.sleep(0.5)
+                table = page.locator("form.table-effort")
                 
-                task = {'task': work,'hours': '4'}
-                add_log(page, date, [task], True)
-                
+                # 检查表格下是否有数据
+                rows = table.locator('tbody tr')  # 获取所有行
+                if rows.count() == 1:  # 判断表格中是否存在行
+                    print(f"开始修改禅道日志")
+                    page.get_by_title("更新日志").click()
+                    work = page.frame_locator("iframe[name=\"iframe-triggerModal\"]").locator("#work").input_value()
+                    page.frame_locator("iframe[name=\"iframe-triggerModal\"]").locator("#consumed").fill("4")
+                    left = page.frame_locator("iframe[name=\"iframe-triggerModal\"]").locator("#left")
+                    if left.is_visible() and left.input_value() == '0':
+                        left.fill("4")
+                    page.frame_locator("iframe[name=\"iframe-triggerModal\"]").get_by_role("button", name="保存").click()
+                    
+                    time.sleep(0.5)
+                    
+                    task = {'task': work,'hours': '4'}
+                    add_log(page, date, [task], True)
+            except Exception as e:
+                print(f"{date}处理失败", e)
 
 
 def submit_tasks(daily_tasks):
@@ -170,4 +178,6 @@ base_url = os.getenv("CHANDAO_URL")
 username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
 
-submit_excel_log('./禅道日志.xlsx')
+# submit_excel_log('./禅道日志.xlsx')
+# edit_git_log()
+submit_git_log(output_file)

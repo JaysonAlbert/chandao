@@ -60,7 +60,7 @@ def extract_json_from_ai_response(ai_response):
         # 将提取的JSON字符串解析为Python对象
         return json.loads(json_str)
     except Exception as e:
-        print(f"提取JSON失败: {e}, {json_str}")
+        print(f"提取JSON失败: {e}, {ai_response}")
         return None
 
 def analyze_work(repo_paths, author, since, until):
